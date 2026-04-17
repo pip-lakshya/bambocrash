@@ -269,7 +269,7 @@ canvas {
     background: #00f2fe; color: black; border-color: #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5); transform: scale(1.1);
 }
 #btn-pause-ui {
-    position: absolute; top: 30px; right: 20px; background: rgba(0,0,0,0.5); border: 2px solid #00f2fe; color: #00f2fe; font-size: 1.2rem; width: 50px; height: 50px; cursor: pointer; border-radius: 50%; z-index: 50; transition: transform 0.2s;
+    position: absolute; top: 30px; right: 20px; background: rgba(0,0,0,0.5); border: 2px solid #00f2fe; color: #00f2fe; font-size: 1.2rem; width: 50px; height: 50px; cursor: pointer; border-radius: 50%; z-index: 50; transition: transform 0.2s; pointer-events: auto;
 }
 #btn-pause-ui:hover { transform: scale(1.1); background: rgba(0,242,254,0.2); }
 

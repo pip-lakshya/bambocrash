@@ -29,6 +29,24 @@ export class InputManager {
             }
         });
         
+        let lastTouchY = null;
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.tagName === 'CANVAS') {
+                lastTouchY = e.touches[0].clientY;
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (lastTouchY !== null && e.target.tagName === 'CANVAS') {
+                e.preventDefault(); // Prevent scrolling
+                this.mouseDelta.y += (e.touches[0].clientY - lastTouchY);
+                lastTouchY = e.touches[0].clientY;
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', () => lastTouchY = null);
+        document.addEventListener('touchcancel', () => lastTouchY = null);
+        
         // Prevent default actions for keys we use
         window.addEventListener('keydown', (e) => {
             if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.code)) {

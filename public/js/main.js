@@ -63,13 +63,14 @@ const scoreboard = document.getElementById('scoreboard');
 const scoreList = document.getElementById('score-list');
 const btnScoresMobile = document.getElementById('btn-scores-mobile');
 
+let scoreToggled = false;
 if (btnScoresMobile) {
     btnScoresMobile.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        scoreboard.classList.toggle('hidden');
+        scoreToggled = !scoreToggled;
     });
     btnScoresMobile.addEventListener('click', () => {
-        scoreboard.classList.toggle('hidden');
+        scoreToggled = !scoreToggled;
     });
 }
 
@@ -368,7 +369,7 @@ function animateCore(dt) {
     document.getElementById('health-text').innerText = player.health + "%";
     document.getElementById('health-bar').style.width = player.health + "%";
     
-    if (input.isPressed('Tab')) {
+    if (input.isPressed('Tab') || scoreToggled) {
         scoreboard.classList.remove('hidden');
     } else {
         scoreboard.classList.add('hidden');
