@@ -129,15 +129,15 @@ setInterval(() => {
         roundActive = false;
         io.emit('roundEnd');
         
-        // Reset Database
-        fs.writeFileSync(SCORES_FILE, JSON.stringify([]));
-        io.emit('scoresUpdated');
-        
         setTimeout(() => {
+            // Reset Database right before starting the next round
+            fs.writeFileSync(SCORES_FILE, JSON.stringify([]));
+            io.emit('scoresUpdated');
+            
             roundTime = 180;
             roundActive = true;
             io.emit('roundStart');
-        }, 5000);
+        }, 8000);
     }
 }, 1000);
 

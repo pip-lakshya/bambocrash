@@ -39,7 +39,7 @@ export class InputManager {
         document.addEventListener('touchmove', (e) => {
             if (lastTouchY !== null && e.target.tagName === 'CANVAS') {
                 e.preventDefault(); // Prevent scrolling
-                this.mouseDelta.y += (e.touches[0].clientY - lastTouchY);
+                this.mouseDelta.y += (e.touches[0].clientY - lastTouchY) * 3;
                 lastTouchY = e.touches[0].clientY;
             }
         }, { passive: false });
