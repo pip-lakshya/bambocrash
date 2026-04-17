@@ -61,6 +61,17 @@ const lookAtTarget = new THREE.Vector3();
 const speedText = document.getElementById('speed-text');
 const scoreboard = document.getElementById('scoreboard');
 const scoreList = document.getElementById('score-list');
+const btnScoresMobile = document.getElementById('btn-scores-mobile');
+
+if (btnScoresMobile) {
+    btnScoresMobile.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        scoreboard.classList.toggle('hidden');
+    });
+    btnScoresMobile.addEventListener('click', () => {
+        scoreboard.classList.toggle('hidden');
+    });
+}
 
 // Skin Selection
 document.querySelectorAll('.skin-btn').forEach(btn => {
@@ -98,6 +109,11 @@ document.getElementById('btn-start').addEventListener('click', () => {
     const username = inputName ? inputName : 'Pilot_' + Math.floor(Math.random()*1000);
     const skin = document.getElementById('btn-skin-bamboo').classList.contains('active') ? 'bamboo' : 'drone';
     
+    // Request fullscreen for mobile/browser
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch((e) => console.log('Fullscreen failed:', e));
+    }
+
     document.getElementById('main-menu').style.opacity = 0;
     setTimeout(() => document.getElementById('main-menu').remove(), 1000);
     
