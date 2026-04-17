@@ -1,0 +1,14 @@
+{
+  "name": "bambocrash",
+  "version": "1.0.0",
+  "description": "Multiplayer Drone Battle",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^9.4.1",
+    "socket.io": "^4.8.3"
+  }
+}

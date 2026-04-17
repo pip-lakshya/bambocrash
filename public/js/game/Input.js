@@ -1,0 +1,45 @@
+export class InputManager {
+    constructor() {
+        this.keys = {};
+        this.mouseDown = false;
+        
+        this.joystick = { x: 0, y: 0 };
+        this.mobileButtons = { ascend: false, descend: false, shoot: false };
+        
+        window.addEventListener('keydown', (e) => this.keys[e.code] = true);
+        window.addEventListener('keyup', (e) => this.keys[e.code] = false);
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 0) this.mouseDown = true;
+        });
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 0) this.mouseDown = false;
+        });
+        
+        this.mouseDelta = { x: 0, y: 0 };
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement) {
+                this.mouseDelta.x += e.movementX;
+                this.mouseDelta.y += e.movementY;
+            }
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'CANVAS' && !document.pointerLockElement) {
+                document.body.requestPointerLock();
+            }
+        });
+        
+        // Prevent default actions for keys we use
+        window.addEventListener('keydown', (e) => {
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.code)) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    }
+
+    isPressed(keyCode) {
+        return !!this.keys[keyCode];
+    }
+}
+
+export const input = new InputManager();
