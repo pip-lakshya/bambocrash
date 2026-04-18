@@ -69,6 +69,13 @@ export class SocketManager {
                 
                 // Spin their rotors visually
                 pInfo.rotors.forEach(r => r.rotation.y += 0.5);
+                
+                if (pInfo.wings && pInfo.wings.length === 2) {
+                    const flapForce = 15;
+                    const time = Date.now() / 1000;
+                    pInfo.wings[0].rotation.z = Math.sin(time * flapForce) * 0.6;
+                    pInfo.wings[1].rotation.z = -Math.sin(time * flapForce) * 0.6;
+                }
             }
         });
     }
@@ -113,6 +120,7 @@ export class SocketManager {
         this.otherPlayers[playerInfo.id] = { 
             mesh: mesh, 
             rotors: graphics.rotors,
+            wings: graphics.wings,
             username: playerInfo.username,
             hitbox: hitbox,
             healthBar: fillMesh,

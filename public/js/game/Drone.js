@@ -44,6 +44,99 @@ export function createDroneMesh(skin = 'drone') {
         frontMarker.position.set(0, 0.5, -1);
         mesh.add(frontMarker);
         
+    } else if (skin === 'bat') {
+        const purpleMat = new THREE.MeshStandardMaterial({ color: 0x4b0082, metalness: 0.5, roughness: 0.5 });
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 });
+        const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        
+        const bodyGeo = new THREE.CylinderGeometry(0.5, 0.8, 3, 16);
+        const body = new THREE.Mesh(bodyGeo, purpleMat);
+        body.rotation.x = Math.PI / 2;
+        body.castShadow = true;
+        mesh.add(body);
+        
+        const headGeo = new THREE.SphereGeometry(0.7, 16, 16);
+        const head = new THREE.Mesh(headGeo, blackMat);
+        head.position.set(0, 0.2, -1.8);
+        mesh.add(head);
+        
+        const earGeo = new THREE.ConeGeometry(0.2, 0.6, 8);
+        const ear1 = new THREE.Mesh(earGeo, goldMat);
+        ear1.position.set(0.4, 0.8, -1.8);
+        ear1.rotation.z = -0.3;
+        const ear2 = new THREE.Mesh(earGeo, goldMat);
+        ear2.position.set(-0.4, 0.8, -1.8);
+        ear2.rotation.z = 0.3;
+        mesh.add(ear1);
+        mesh.add(ear2);
+        
+        const wingGeo1 = new THREE.BoxGeometry(3, 0.1, 1.5);
+        wingGeo1.translate(1.5, 0, 0);
+        const wing1 = new THREE.Mesh(wingGeo1, purpleMat);
+        wing1.position.set(0.4, 0, 0);
+        
+        const wingGeo2 = new THREE.BoxGeometry(3, 0.1, 1.5);
+        wingGeo2.translate(-1.5, 0, 0);
+        const wing2 = new THREE.Mesh(wingGeo2, purpleMat);
+        wing2.position.set(-0.4, 0, 0);
+        
+        mesh.add(wing1);
+        mesh.add(wing2);
+        
+        mesh.userData.wings = [wing1, wing2];
+
+    } else if (skin === 'jet') {
+        const hullMat = new THREE.MeshStandardMaterial({ color: 0x4a5320, roughness: 0.8 }); 
+        const blackMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const accentMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        
+        // Main fuselage
+        const fuseGeo = new THREE.BoxGeometry(1.2, 0.6, 5);
+        const fuselage = new THREE.Mesh(fuseGeo, hullMat);
+        mesh.add(fuselage);
+        
+        // Nose (cone)
+        const noseGeo = new THREE.ConeGeometry(0.6, 1.5, 4);
+        const nose = new THREE.Mesh(noseGeo, accentMat);
+        nose.rotation.x = -Math.PI / 2;
+        nose.rotation.y = Math.PI / 4;
+        nose.position.z = -3.25;
+        mesh.add(nose);
+        
+        // Delta Wings (larger box)
+        const wingGeo = new THREE.BoxGeometry(6, 0.2, 3);
+        const jetWings = new THREE.Mesh(wingGeo, hullMat);
+        jetWings.position.z = 0.5;
+        mesh.add(jetWings);
+        
+        // Tail fins
+        const tailGeo = new THREE.BoxGeometry(0.2, 1.2, 1);
+        const tail1 = new THREE.Mesh(tailGeo, blackMat);
+        tail1.position.set(0.4, 0.6, 2);
+        tail1.rotation.z = -0.2;
+        const tail2 = new THREE.Mesh(tailGeo, blackMat);
+        tail2.position.set(-0.4, 0.6, 2);
+        tail2.rotation.z = 0.2;
+        mesh.add(tail1);
+        mesh.add(tail2);
+        
+        // Rotors embedded within the wings
+        const rotorGeo = new THREE.CylinderGeometry(0.9, 0.9, 0.1, 16);
+        const rotorMat = new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 0.8 });
+        
+        const positions = [
+            [2.0, 0.3, -0.2], [-2.0, 0.3, -0.2],
+            [2.0, 0.3, 1.5], [-2.0, 0.3, 1.5]
+        ];
+        
+        positions.forEach((pos, idx) => {
+            const rMat = (idx < 2) ? new THREE.MeshStandardMaterial({ color: 0x22ff22, transparent: true, opacity: 0.7 }) : new THREE.MeshStandardMaterial({ color: 0xff2222, transparent: true, opacity: 0.7 });
+            const rotor = new THREE.Mesh(rotorGeo, rMat);
+            rotor.position.set(pos[0], pos[1], pos[2]);
+            mesh.add(rotor);
+            rotors.push(rotor);
+        });
+        
     } else {
         const bodyGeo = new THREE.BoxGeometry(2, 0.5, 2);
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
@@ -73,7 +166,7 @@ export function createDroneMesh(skin = 'drone') {
     }
     
     mesh.scale.set(1.5, 1.5, 1.5);
-    return { mesh, rotors };
+    return { mesh, rotors, wings: mesh.userData.wings || [] };
 }
 
 export class Drone {
@@ -83,6 +176,7 @@ export class Drone {
         const graphics = createDroneMesh(skin);
         this.mesh = graphics.mesh;
         this.rotors = graphics.rotors;
+        this.wings = graphics.wings;
         this.skin = skin;
 
         this.scene.add(this.mesh);
@@ -99,6 +193,13 @@ export class Drone {
         this.rotors.forEach(rotor => {
             rotor.rotation.y += 20 * dt;
         });
+        
+        if (this.wings && this.wings.length === 2) {
+            const flapForce = 15;
+            const time = Date.now() / 1000;
+            this.wings[0].rotation.z = Math.sin(time * flapForce) * 0.6;
+            this.wings[1].rotation.z = -Math.sin(time * flapForce) * 0.6;
+        }
 
         let thrust = -input.joystick.y;
         if (input.isPressed('KeyW')) thrust = 1;

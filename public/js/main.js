@@ -57,6 +57,16 @@ const explosions = [];
 const clock = new THREE.Clock();
 const lookAtTarget = new THREE.Vector3();
 
+// HOW TO PLAY Overlay
+const tutorialOverlay = document.getElementById('tutorial-overlay');
+const btnSkipTutorial = document.getElementById('btn-skip-tutorial');
+if (tutorialOverlay && btnSkipTutorial) {
+    btnSkipTutorial.addEventListener('click', () => {
+        tutorialOverlay.style.opacity = '0';
+        setTimeout(() => tutorialOverlay.remove(), 500);
+    });
+}
+
 // UI Elements
 const speedText = document.getElementById('speed-text');
 const scoreboard = document.getElementById('scoreboard');
@@ -248,7 +258,10 @@ document.getElementById('btn-start').addEventListener('click', () => {
     const username = inputName ? inputName : 'Pilot_' + Math.floor(Math.random()*1000);
     const roomInput = document.getElementById('room-input');
     const roomCode = roomInput && roomInput.value.trim() ? roomInput.value.trim().toUpperCase() : 'GLOBAL';
-    const skin = document.getElementById('btn-skin-bamboo').classList.contains('active') ? 'bamboo' : 'drone';
+    let skin = 'drone';
+    if (document.getElementById('btn-skin-bamboo').classList.contains('active')) skin = 'bamboo';
+    else if (document.getElementById('btn-skin-bat') && document.getElementById('btn-skin-bat').classList.contains('active')) skin = 'bat';
+    else if (document.getElementById('btn-skin-jet') && document.getElementById('btn-skin-jet').classList.contains('active')) skin = 'jet';
     
     // Request fullscreen for mobile/browser if desired
     if (document.documentElement.requestFullscreen && window.innerWidth <= 900) {
