@@ -30,22 +30,26 @@ export class InputManager {
         });
         
         let lastTouchY = null;
+        let lastTouchX = null;
         document.addEventListener('touchstart', (e) => {
             if (e.target.tagName === 'CANVAS') {
                 lastTouchY = e.touches[0].clientY;
+                lastTouchX = e.touches[0].clientX;
             }
         }, { passive: false });
         
         document.addEventListener('touchmove', (e) => {
-            if (lastTouchY !== null && e.target.tagName === 'CANVAS') {
+            if (lastTouchY !== null && lastTouchX !== null && e.target.tagName === 'CANVAS') {
                 e.preventDefault(); // Prevent scrolling
                 this.mouseDelta.y += (e.touches[0].clientY - lastTouchY) * 3;
+                this.mouseDelta.x += (e.touches[0].clientX - lastTouchX) * 3;
                 lastTouchY = e.touches[0].clientY;
+                lastTouchX = e.touches[0].clientX;
             }
         }, { passive: false });
         
-        document.addEventListener('touchend', () => lastTouchY = null);
-        document.addEventListener('touchcancel', () => lastTouchY = null);
+        document.addEventListener('touchend', () => { lastTouchY = null; lastTouchX = null; });
+        document.addEventListener('touchcancel', () => { lastTouchY = null; lastTouchX = null; });
         
         // Prevent default actions for keys we use
         window.addEventListener('keydown', (e) => {

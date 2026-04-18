@@ -2,15 +2,16 @@ import * as THREE from 'three';
 import { createDroneMesh } from '../game/Drone.js';
 
 export class SocketManager {
-    constructor(scene, username, skin) {
+    constructor(scene, username, skin, roomCode = 'GLOBAL') {
         this.scene = scene;
         this.socket = io(); 
         this.otherPlayers = {};
         
         this.username = username;
         this.skin = skin;
+        this.roomCode = roomCode;
         
-        this.socket.emit('joinGame', { username, skin });
+        this.socket.emit('joinGame', { username, skin, room: roomCode });
         
         this.setupEvents();
         

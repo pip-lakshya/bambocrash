@@ -23,8 +23,9 @@ app.use(express.json());
 // Scoreboard API
 app.get('/api/scores', (req, res) => {
     try {
+        const room = req.query.room || 'GLOBAL';
         const data = fs.readFileSync(SCORES_FILE, 'utf8');
-        const scores = JSON.parse(data).sort((a,b) => b.kills - a.kills).slice(0, 10);
+        const scores = JSON.parse(data).filter(s => s.room === room).sort((a,b) => b.kills - a.kills).slice(0, 10);
         res.json(scores);
     } catch {
         res.json([{ playerName: 'SysError', kills: 0, deaths: 0 }]);
@@ -40,23 +41,32 @@ io.on('connection', (socket) => {
     // Do not create player here, wait for joinGame
     // players[socket.id] = { id: socket.id, position: { x: 0, y: 0, z: 0 }, rotation: { y: 0 } };
 
-    // Tell the new player about all existing players
-    socket.emit('currentPlayers', players);
-
-    // Broadcast player count
-    io.emit('playerCount', Object.keys(players).length);
+    // Tell the new player about all existing players (Not really needed globally anymore, handled in joinGame)
 
     // Join Game
     socket.on('joinGame', (data) => {
+        const room = data.room || 'GLOBAL';
+        socket.join(room);
         players[socket.id] = { 
             id: socket.id, 
             username: data.username, 
             skin: data.skin, 
+            room: room,
             position: { x: 0, y: 20, z: 0 }, 
             rotation: { y: 0 } 
         };
-        io.emit('currentPlayers', players); // Send everyone the latest info
-        io.emit('playerCount', Object.keys(players).length);
+        
+        const roomPlayers = {};
+        let count = 0;
+        Object.values(players).forEach(p => {
+            if (p.room === room) {
+                roomPlayers[p.id] = p;
+                count++;
+            }
+        });
+        
+        io.to(room).emit('currentPlayers', roomPlayers);
+        io.to(room).emit('playerCount', count);
     });
     
     // Scoring & Hit processing
@@ -75,19 +85,20 @@ io.on('connection', (socket) => {
             
             const shooterName = players[shooterId].username;
             const victimName = players[socket.id].username;
+            const room = players[socket.id].room;
             
-            let shooterRec = scoresData.find(s => s.playerName === shooterName);
-            if (!shooterRec) { shooterRec = { playerName: shooterName, kills: 0, deaths: 0 }; scoresData.push(shooterRec); }
+            let shooterRec = scoresData.find(s => s.playerName === shooterName && s.room === room);
+            if (!shooterRec) { shooterRec = { playerName: shooterName, kills: 0, deaths: 0, room: room }; scoresData.push(shooterRec); }
             shooterRec.kills++;
             
-            let victimRec = scoresData.find(s => s.playerName === victimName);
-            if (!victimRec) { victimRec = { playerName: victimName, kills: 0, deaths: 0 }; scoresData.push(victimRec); }
+            let victimRec = scoresData.find(s => s.playerName === victimName && s.room === room);
+            if (!victimRec) { victimRec = { playerName: victimName, kills: 0, deaths: 0, room: room }; scoresData.push(victimRec); }
             victimRec.deaths++;
             
             fs.writeFileSync(SCORES_FILE, JSON.stringify(scoresData));
-            io.emit('scoresUpdated');
+            io.to(room).emit('scoresUpdated');
             
-            io.emit('killFeed', { 
+            io.to(room).emit('killFeed', { 
                 killer: shooterName, 
                 victim: victimName,
                 position: players[socket.id].position 
@@ -106,14 +117,20 @@ io.on('connection', (socket) => {
         if (!players[socket.id]) return;
         players[socket.id].position = movementData.position;
         players[socket.id].rotation = movementData.rotation;
-        socket.broadcast.emit('playerMoved', players[socket.id]);
+        socket.to(players[socket.id].room).emit('playerMoved', players[socket.id]);
     });
 
     socket.on('disconnect', () => {
         console.log('user disconnected: ' + socket.id);
-        delete players[socket.id];
-        io.emit('playerDisconnect', socket.id);
-        io.emit('playerCount', Object.keys(players).length);
+        if (players[socket.id]) {
+            const room = players[socket.id].room;
+            delete players[socket.id];
+            io.to(room).emit('playerDisconnect', socket.id);
+            
+            let count = 0;
+            Object.values(players).forEach(p => { if (p.room === room) count++; });
+            io.to(room).emit('playerCount', count);
+        }
     });
 });
 

@@ -72,12 +72,16 @@
               <button id="btn-descend">v</button>
            </div>
         </div>
+        
+        <button id="btn-fullscreen">⛶</button>
     </div>
     
     <div id="pause-menu" class="glass-panel hidden">
         <h1 id="pause-title">PAUSED</h1>
         <p id="pause-desc">Press 'P' or click below to resume</p>
         <button id="btn-resume" style="margin-top: 20px; padding: 10px 20px; background: rgba(0,242,254,0.3); border: 2px solid #00f2fe; color: white; cursor: pointer; border-radius: 5px; font-weight: bold;">RESUME</button>
+        <button id="btn-edit-hud" style="margin-top: 20px; margin-left: 10px; padding: 10px 20px; background: rgba(255,165,0,0.3); border: 2px solid #ffa500; color: white; cursor: pointer; border-radius: 5px; font-weight: bold;">EDIT HUD</button>
+        <button id="btn-exit-game" style="margin-top: 20px; margin-left: 10px; padding: 10px 20px; background: rgba(255,50,50,0.3); border: 2px solid #ff3366; color: white; cursor: pointer; border-radius: 5px; font-weight: bold;">EXIT GAME</button>
     </div>
     
     <!-- STARTUP MAIN MENU -->
@@ -86,6 +90,10 @@
         <p>High-Speed Drone Combat</p>
         
         <input type="text" id="username-input" placeholder="ENTER CALLSIGN" maxlength="12">
+        <div style="position: relative; display: inline-block; margin-top: 15px;">
+            <input type="text" id="room-input" placeholder="ROOM CODE (OPTIONAL)" maxlength="12" style="padding: 15px; font-size: 1.2rem; font-family: 'Inter'; font-weight: 800; text-align: center; background: rgba(0,0,0,0.5); border: 2px solid #00f2fe; color: white; outline: none; border-radius: 10px; width: 300px; text-transform: uppercase;">
+            <span id="btn-clear-room" style="position: absolute; right: 15px; top: 15px; cursor: pointer; color: #ff3366; font-weight: bold; font-family: 'Inter'; display: none; font-size: 1.2rem;">X</span>
+        </div>
         <div class="skin-selector">
             <button id="btn-skin-drone" class="skin-btn active">
                 <svg width="40" height="40" viewBox="0 0 100 100" style="display:block; margin: 0 auto 10px auto;">

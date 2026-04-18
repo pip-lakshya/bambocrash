@@ -63,6 +63,19 @@ const scoreboard = document.getElementById('scoreboard');
 const scoreList = document.getElementById('score-list');
 const btnScoresMobile = document.getElementById('btn-scores-mobile');
 
+const roomInputUI = document.getElementById('room-input');
+const btnClearRoom = document.getElementById('btn-clear-room');
+if (roomInputUI && btnClearRoom) {
+    roomInputUI.addEventListener('input', () => {
+        btnClearRoom.style.display = roomInputUI.value.length > 0 ? 'inline' : 'none';
+    });
+    btnClearRoom.addEventListener('click', () => {
+        roomInputUI.value = '';
+        btnClearRoom.style.display = 'none';
+        roomInputUI.focus();
+    });
+}
+
 let scoreToggled = false;
 if (btnScoresMobile) {
     btnScoresMobile.addEventListener('touchstart', (e) => {
@@ -82,7 +95,6 @@ document.querySelectorAll('.skin-btn').forEach(btn => {
     });
 });
 
-// UI Pause Logic
 if (document.getElementById('btn-pause-ui')) {
     document.getElementById('btn-pause-ui').addEventListener('click', () => {
         gamePaused = !gamePaused;
@@ -95,9 +107,135 @@ if (document.getElementById('btn-resume')) {
         document.getElementById('pause-menu').classList.add('hidden');
     });
 }
+if (document.getElementById('btn-exit-game')) {
+    document.getElementById('btn-exit-game').addEventListener('click', () => {
+        window.location.reload();
+    });
+}
+
+// FULLSCREEN HANDLING
+const btnFullscreen = document.getElementById('btn-fullscreen');
+if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen().catch(() => {});
+        }
+    });
+}
+document.addEventListener('fullscreenchange', () => {
+    if (btnFullscreen) {
+        btnFullscreen.style.display = document.fullscreenElement ? 'none' : 'block';
+    }
+});
+
+// CUSTOM HUD DRAG LOGIC
+const draggables = [
+    document.getElementById('joystick-zone'),
+    document.getElementById('action-buttons')
+];
+let isEditingHUD = false;
+
+// Load Saved HUD positions
+draggables.forEach(el => {
+    if(!el) return;
+    const saved = localStorage.getItem('hud_pos_' + el.id);
+    if (saved) {
+        const { left, top } = JSON.parse(saved);
+        el.style.position = 'absolute';
+        el.style.left = left;
+        el.style.top = top;
+    }
+});
+
+const btnEditHud = document.getElementById('btn-edit-hud');
+if (btnEditHud) {
+    btnEditHud.addEventListener('click', () => {
+        isEditingHUD = !isEditingHUD;
+        btnEditHud.innerText = isEditingHUD ? "SAVE HUD" : "EDIT HUD";
+        
+        draggables.forEach(el => {
+            if(!el) return;
+            if (isEditingHUD) {
+                el.classList.add('editing', 'draggable-hud');
+                setupDraggable(el);
+            } else {
+                el.classList.remove('editing', 'draggable-hud');
+                removeDraggable(el);
+            }
+        });
+    });
+}
+
+function setupDraggable(el) {
+    el._dragState = { isDown: false, startX: 0, startY: 0, cachedLeft: 0, cachedTop: 0 };
+    
+    el._downHandler = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        el._dragState.isDown = true;
+        
+        const pt = e.touches ? e.touches[0] : e;
+        el._dragState.startX = pt.clientX;
+        el._dragState.startY = pt.clientY;
+        
+        const rect = el.getBoundingClientRect();
+        el._dragState.cachedLeft = rect.left;
+        el._dragState.cachedTop = rect.top;
+        el.style.position = 'absolute';
+    };
+    
+    el._moveHandler = function(e) {
+        if (!el._dragState.isDown) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const pt = e.touches ? e.touches[0] : e;
+        
+        const dx = pt.clientX - el._dragState.startX;
+        const dy = pt.clientY - el._dragState.startY;
+        
+        const newLeft = (el._dragState.cachedLeft + dx) + 'px';
+        const newTop = (el._dragState.cachedTop + dy) + 'px';
+        
+        el.style.left = newLeft;
+        el.style.top = newTop;
+    };
+    
+    el._upHandler = function(e) {
+        if(!el._dragState.isDown) return;
+        el._dragState.isDown = false;
+        
+        localStorage.setItem('hud_pos_' + el.id, JSON.stringify({
+            left: el.style.left,
+            top: el.style.top
+        }));
+    };
+    
+    el.addEventListener('touchstart', el._downHandler, { passive: false });
+    document.addEventListener('touchmove', el._moveHandler, { passive: false });
+    document.addEventListener('touchend', el._upHandler);
+    
+    el.addEventListener('mousedown', el._downHandler);
+    document.addEventListener('mousemove', el._moveHandler);
+    document.addEventListener('mouseup', el._upHandler);
+}
+
+function removeDraggable(el) {
+    if (el._downHandler) {
+        el.removeEventListener('touchstart', el._downHandler);
+        document.removeEventListener('touchmove', el._moveHandler);
+        document.removeEventListener('touchend', el._upHandler);
+        
+        el.removeEventListener('mousedown', el._downHandler);
+        document.removeEventListener('mousemove', el._moveHandler);
+        document.removeEventListener('mouseup', el._upHandler);
+    }
+}
 
 function refreshScoreboard() {
-    fetch('/api/scores').then(r=>r.json()).then(data => {
+    const roomParam = (typeof socketManager !== 'undefined' && socketManager.roomCode) ? socketManager.roomCode : 'GLOBAL';
+    fetch(`/api/scores?room=${roomParam}`).then(r=>r.json()).then(data => {
         scoreList.innerHTML = data.map(s => `<li><span>${s.playerName}</span><span class="score-stats">${s.kills}K / ${s.deaths}D</span></li>`).join('');
     }).catch(() => {
         scoreList.innerHTML = '<li>Local Training Mode</li>';
@@ -108,10 +246,12 @@ refreshScoreboard();
 document.getElementById('btn-start').addEventListener('click', () => {
     const inputName = document.getElementById('username-input').value.trim();
     const username = inputName ? inputName : 'Pilot_' + Math.floor(Math.random()*1000);
+    const roomInput = document.getElementById('room-input');
+    const roomCode = roomInput && roomInput.value.trim() ? roomInput.value.trim().toUpperCase() : 'GLOBAL';
     const skin = document.getElementById('btn-skin-bamboo').classList.contains('active') ? 'bamboo' : 'drone';
     
-    // Request fullscreen for mobile/browser
-    if (document.documentElement.requestFullscreen) {
+    // Request fullscreen for mobile/browser if desired
+    if (document.documentElement.requestFullscreen && window.innerWidth <= 900) {
         document.documentElement.requestFullscreen().catch((e) => console.log('Fullscreen failed:', e));
     }
 
@@ -121,7 +261,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
     player = new Drone(scene, skin);
     player.mesh.position.set(0, 0, 0);
     
-    socketManager = new SocketManager(scene, username, skin);
+    socketManager = new SocketManager(scene, username, skin, roomCode);
     
     socketManager.socket.on('youGotHit', (data) => {
         player.health -= 20;
@@ -172,6 +312,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
     
     socketManager.socket.on('roundEnd', () => {
         roundActive = false;
+        scoreToggled = true;
         scoreboard.classList.remove('hidden'); // Force open
         
         document.getElementById('pause-title').innerText = "ROUND OVER";
@@ -182,6 +323,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
     socketManager.socket.on('roundStart', () => {
         roundActive = true;
+        scoreToggled = false;
         scoreboard.classList.add('hidden');
         
         document.getElementById('pause-title').innerText = "PAUSED";
