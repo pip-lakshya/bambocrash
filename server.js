@@ -34,6 +34,7 @@ app.get('/api/scores', (req, res) => {
 
 // Basic Multiplayer Game State
 const players = {};
+const roomsState = {};
 
 io.on('connection', (socket) => {
     console.log('a user connected: ' + socket.id);
@@ -47,6 +48,11 @@ io.on('connection', (socket) => {
     socket.on('joinGame', (data) => {
         const room = data.room || 'GLOBAL';
         socket.join(room);
+        
+        if (!roomsState[room]) {
+            roomsState[room] = { roundTime: 180, roundActive: true };
+        }
+        
         players[socket.id] = { 
             id: socket.id, 
             username: data.username, 
@@ -134,29 +140,38 @@ io.on('connection', (socket) => {
     });
 });
 
-let roundTime = 180;
-let roundActive = true;
-
 setInterval(() => {
-    if (!roundActive) return;
-    roundTime--;
-    io.emit('timeUpdate', roundTime);
-    
-    if (roundTime <= 0) {
-        roundActive = false;
-        io.emit('roundEnd');
+    Object.keys(roomsState).forEach(room => {
+        const state = roomsState[room];
+        if (!state.roundActive) return;
+        state.roundTime--;
+        io.to(room).emit('timeUpdate', state.roundTime);
         
-        setTimeout(() => {
-            // Reset Database right before starting the next round
-            fs.writeFileSync(SCORES_FILE, JSON.stringify([]));
-            io.emit('scoresUpdated');
+        if (state.roundTime <= 0) {
+            state.roundActive = false;
+            io.to(room).emit('roundEnd');
             
-            roundTime = 180;
-            roundActive = true;
-            io.emit('roundStart');
-        }, 8000);
-    }
+            setTimeout(() => {
+                // Reset Database right before starting the next round for this room
+                try {
+                    const data = fs.readFileSync(SCORES_FILE, 'utf8');
+                    let scoresData = JSON.parse(data);
+                    scoresData = scoresData.filter(s => s.room !== room);
+                    fs.writeFileSync(SCORES_FILE, JSON.stringify(scoresData));
+                } catch (e) {
+                    console.error('DB Error');
+                }
+                
+                io.to(room).emit('scoresUpdated');
+                
+                state.roundTime = 180;
+                state.roundActive = true;
+                io.to(room).emit('roundStart');
+            }, 8000);
+        }
+    });
 }, 1000);
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
